@@ -13,6 +13,7 @@ import {
   FaFacebook,
   FaInstagram,
   FaCheckCircle,
+  FaLock,
 } from "react-icons/fa";
 
 const Contact = () => {
@@ -21,6 +22,7 @@ const Contact = () => {
     lastName: "",
     email: "",
     phone: "",
+    password: "",
   });
   const [scrollY, setScrollY] = useState(0);
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -436,6 +438,35 @@ const Contact = () => {
                         )}
                     </div>
 
+                    {/* Added Password Field */}
+                    <div>
+                      <label
+                        htmlFor="password"
+                        className="block text-sm font-medium text-gray-700 mb-2"
+                      >
+                        Password *
+                      </label>
+                      <div className="relative">
+                        <FaLock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                        <input
+                          type="password"
+                          id="password"
+                          name="password"
+                          value={formData.password}
+                          onChange={handleChange}
+                          className="w-full pl-12 pr-4 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all"
+                          placeholder="Enter your password"
+                          required
+                          minLength={7}
+                        />
+                      </div>
+                      {formData.password && formData.password.length < 7 && (
+                        <p className="text-red-500 text-sm mt-1">
+                          Password must be at least 7 characters
+                        </p>
+                      )}
+                    </div>
+
                     <div className="bg-orange-50 border border-orange-200 rounded-xl p-4">
                       <h4 className="font-semibold text-gray-900 mb-2">
                         What you'll get:
@@ -467,12 +498,14 @@ const Contact = () => {
                         !formData.lastName ||
                         !formData.email ||
                         !formData.phone ||
+                        !formData.password ||
                         formData.firstName.length < 2 ||
                         formData.lastName.length < 2 ||
                         !/^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i.test(
                           formData.email
                         ) ||
-                        !/[+]?[0-9\s\-$$$$]{10,}/.test(formData.phone)
+                        !/[+]?[0-9\s\-$$$$]{10,}/.test(formData.phone) ||
+                        formData.password.length < 7
                       }
                       className="w-full bg-gradient-to-r from-orange-600 to-red-600 text-white py-4 px-8 rounded-xl font-bold text-lg hover:from-orange-700 hover:to-red-700 transition-all transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                     >
