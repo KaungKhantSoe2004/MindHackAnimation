@@ -322,9 +322,9 @@ const History = () => {
                     >
                       <FaPlay className="text-3xl ml-1" />
                     </button>
-                    <h3 className="text-white text-2xl md:text-3xl font-bold max-w-lg text-center px-4">
+                    {/* <h3 className="text-white text-2xl md:text-3xl font-bold max-w-lg text-center px-4">
                       The Mind Hack Journey: Transforming Human Potential
-                    </h3>
+                    </h3> */}
                   </div>
                 </>
               )}
