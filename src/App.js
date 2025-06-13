@@ -8,6 +8,7 @@ import History from "./pages/History";
 import FAQ from "./pages/FAQ";
 import Contact from "./pages/Contact";
 import "./App.css";
+import Register from "./pages/register";
 
 function App() {
   return (
@@ -21,6 +22,7 @@ function App() {
             <Route path="/gallery" element={<Gallery />} />
             <Route path="/history" element={<History />} />
             <Route path="/faq" element={<FAQ />} />
+            <Route path="/register" element={<Register />} />
             <Route path="/contact" element={<Contact />} />
           </Routes>
         </main>

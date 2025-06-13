@@ -257,9 +257,9 @@ const Home = () => {
             </div>
 
             {/* Card 2 - Technology Integration */}
-            <div className="flex flex-col lg:flex-row-reverse items-center gap-16 group">
+            <div className="flex  flex-col lg:flex-row-reverse items-center gap-16 group">
               <div className="lg:w-1/2">
-                <div className="relative overflow-hidden rounded-3xl shadow-2xl group-hover:shadow-3xl transition-all duration-700 bg-gradient-to-br from-purple-50 to-blue-50 p-10">
+                <div className="relative overflow-hidden rounded-3xl  group-hover:shadow-3xl transition-all duration-700 p-10">
                   <img
                     src="./bot.gif"
                     alt="AI Technology"

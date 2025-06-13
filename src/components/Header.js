@@ -100,6 +100,7 @@ const Header = () => {
     { name: "History", path: "/history" },
     { name: "FAQ", path: "/faq" },
     { name: "Contact", path: "/contact" },
+    { name: "Register", path: "/register" },
   ];
 
   return (
