@@ -9,147 +9,35 @@ import {
   FaDownload,
   FaEye,
 } from "react-icons/fa";
+import { useDispatch, useSelector } from "react-redux";
+import { setStoreReduxGallery } from "../reducer/gallerySlice";
+import axios from "axios";
 
 const Gallery = () => {
+  const backend_domain_name =
+    "http://mindhack-admin.z256600-ll9lz.ps02.zwhhosting.com";
+  const [loading, setLoading] = useState(false);
+  const reduxGallery = useSelector((store) => store.gallery);
+  const dispatch = useDispatch();
+  const [isServerError, setIsServerError] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [scrollY, setScrollY] = useState(0);
 
   const categories = [
     { id: "all", name: "All", count: 12 },
-    { id: "workshops", name: "Workshops", count: 4 },
-    { id: "networking", name: "Networking", count: 3 },
-    { id: "speakers", name: "Speakers", count: 3 },
-    { id: "innovation", name: "Innovation", count: 2 },
+    { id: "Workshops", name: "Workshops", count: 4 },
+    { id: "Networking", name: "Networking", count: 3 },
+    { id: "Speakers", name: "Speakers", count: 3 },
+    { id: "Innovation", name: "Innovation", count: 2 },
   ];
 
-  const galleryImages = [
-    {
-      id: 1,
-      src: "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=600&h=400&fit=crop",
-      title: "Mind Hack Workshop 2024",
-      description:
-        "Intensive cognitive enhancement workshop with world-class neuroscientists and researchers.",
-      category: "workshops",
-      likes: 124,
-      views: 1250,
-    },
-    {
-      id: 2,
-      src: "https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=600&h=400&fit=crop",
-      title: "Networking Excellence",
-      description:
-        "Building meaningful connections between innovators, entrepreneurs, and thought leaders.",
-      category: "networking",
-      likes: 89,
-      views: 890,
-    },
-    {
-      id: 3,
-      src: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=600&h=400&fit=crop",
-      title: "Innovation Showcase",
-      description:
-        "Cutting-edge technology demonstrations and breakthrough innovations in neuroscience.",
-      category: "innovation",
-      likes: 156,
-      views: 2100,
-    },
-    {
-      id: 4,
-      src: "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=600&h=400&fit=crop",
-      title: "Keynote Presentation",
-      description:
-        "Inspiring talks from industry leaders about the future of human potential.",
-      category: "speakers",
-      likes: 203,
-      views: 3200,
-    },
-    {
-      id: 5,
-      src: "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=600&h=400&fit=crop",
-      title: "Interactive Learning Session",
-      description:
-        "Hands-on workshops exploring brain-computer interfaces and cognitive enhancement.",
-      category: "workshops",
-      likes: 98,
-      views: 1100,
-    },
-    {
-      id: 6,
-      src: "https://images.unsplash.com/photo-1531482615713-2afd69097998?w=600&h=400&fit=crop",
-      title: "Team Collaboration",
-      description:
-        "Collaborative problem-solving sessions fostering innovation and creativity.",
-      category: "workshops",
-      likes: 76,
-      views: 850,
-    },
-    {
-      id: 7,
-      src: "https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=600&h=400&fit=crop",
-      title: "Brain Training Lab",
-      description:
-        "Advanced cognitive training using cutting-edge neurotechnology and biofeedback.",
-      category: "innovation",
-      likes: 142,
-      views: 1800,
-    },
-    {
-      id: 8,
-      src: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600&h=400&fit=crop",
-      title: "Performance Optimization",
-      description:
-        "Elite athletes and performers sharing their mental training techniques.",
-      category: "speakers",
-      likes: 187,
-      views: 2400,
-    },
-    {
-      id: 9,
-      src: "https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=600&h=400&fit=crop",
-      title: "Tech Integration Demo",
-      description:
-        "Live demonstrations of brain-computer interfaces and neural enhancement technology.",
-      category: "workshops",
-      likes: 134,
-      views: 1600,
-    },
-    {
-      id: 10,
-      src: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&h=400&fit=crop",
-      title: "Expert Panel Discussion",
-      description:
-        "Leading neuroscientists discussing the future of cognitive enhancement.",
-      category: "speakers",
-      likes: 165,
-      views: 2200,
-    },
-    {
-      id: 11,
-      src: "https://images.unsplash.com/photo-1511578314322-379afb476865?w=600&h=400&fit=crop",
-      title: "Community Mixer",
-      description:
-        "Informal networking session with refreshments and meaningful conversations.",
-      category: "networking",
-      likes: 92,
-      views: 950,
-    },
-    {
-      id: 12,
-      src: "https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=600&h=400&fit=crop",
-      title: "Innovation Awards",
-      description:
-        "Celebrating breakthrough innovations and outstanding contributions to the field.",
-      category: "networking",
-      likes: 218,
-      views: 2800,
-    },
-  ];
+  const [galleryImages, setGalleryImages] = useState(reduxGallery.gallery);
 
   const filteredImages =
     selectedCategory === "all"
       ? galleryImages
-      : galleryImages.filter((image) => image.category === selectedCategory);
+      : galleryImages.filter((image) => image.type === selectedCategory);
 
   // Scroll-based background movement
   useEffect(() => {
@@ -160,7 +48,31 @@ const Gallery = () => {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+  const fetchData = async () => {
+    try {
+      setLoading(true);
 
+      const response = await axios.get(`${backend_domain_name}/api/gallery`);
+
+      if (response.status == 200) {
+        console.log(galleryImages);
+        setGalleryImages(response.data.data);
+        dispatch(setStoreReduxGallery(response.data.data));
+        setIsServerError(false);
+      } else {
+        setIsServerError(true);
+      }
+
+      setLoading(false);
+    } catch (error) {
+      console.error("Error in fetchApi:", error);
+      setLoading(false);
+      setIsServerError(true);
+    }
+  };
+  useEffect(() => {
+    fetchData();
+  }, []);
   return (
     <div className="relative min-h-screen">
       {/* Animated Background Elements */}
@@ -242,9 +154,6 @@ const Gallery = () => {
                 }`}
               >
                 {category.name}
-                <span className="ml-2 text-sm opacity-75">
-                  ({category.count})
-                </span>
               </button>
             ))}
           </div>
@@ -260,17 +169,20 @@ const Gallery = () => {
                 {/* Image Container */}
                 <div className="relative overflow-hidden">
                   <img
-                    src={image.src || "/placeholder.svg"}
+                    src={
+                      image.gallery
+                        ? `${backend_domain_name}/storage/app/public/${image.gallery}`
+                        : "/placeholder.svg"
+                    }
                     alt={image.title}
                     className="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-500"
                   />
 
                   {/* Overlay on Hover */}
 
-                  {/* Category Badge */}
                   <div className="absolute top-4 left-4">
                     <span className="bg-white/90 backdrop-blur-sm text-gray-800 px-3 py-1 rounded-full text-sm font-medium capitalize">
-                      {image.category}
+                      {image.type}
                     </span>
                   </div>
                 </div>
@@ -354,16 +266,16 @@ const Gallery = () => {
                     </p>
 
                     <div className="flex items-center gap-6 text-sm">
-                      <div className="flex items-center gap-2">
+                      {/* <div className="flex items-center gap-2">
                         <FaEye />
                         <span>{selectedImage.views} views</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <FaHeart />
                         <span>{selectedImage.likes} likes</span>
-                      </div>
+                      </div> */}
                       <span className="bg-white/20 px-3 py-1 rounded-full capitalize">
-                        {selectedImage.category}
+                        {selectedImage.type}
                       </span>
                     </div>
                   </div>

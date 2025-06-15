@@ -1,5 +1,6 @@
 "use client";
 
+import axios from "axios";
 import { useState, useEffect, useRef } from "react";
 import {
   FaEnvelope,
@@ -12,8 +13,21 @@ import {
   FaFire,
   FaChartLine,
 } from "react-icons/fa";
+import { useDispatch, useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
+import { setStoreReduxSponsors } from "../reducer/sponsorSlice";
+import { setStoreReduxEvents } from "../reducer/eventsSlice";
+import { setStoreReduxFaq } from "../reducer/faqSlice";
+import { setStoreReduxGallery } from "../reducer/gallerySlice";
 
 const Home = () => {
+  const [loading, setLoading] = useState(false);
+  const reduxSponsors = useSelector((store) => store.sponsors);
+  const dispatch = useDispatch();
+  const [isServerError, setIsServerError] = useState(false);
+  const navigate = useNavigate();
+  const backend_domain_name =
+    "http://mindhack-admin.z256600-ll9lz.ps02.zwhhosting.com";
   const [email, setEmail] = useState("");
   const [currentBgIndex, setCurrentBgIndex] = useState(0);
   const [scrollY, setScrollY] = useState(0);
@@ -33,18 +47,8 @@ const Home = () => {
     setEmail("");
   };
 
-  const sponsors = [
-    "https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=150&h=80&fit=crop",
-    "https://images.unsplash.com/photo-1572021335469-31706a17aaef?w=150&h=80&fit=crop",
-    "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=150&h=80&fit=crop",
-    "https://images.unsplash.com/photo-1551836022-deb4988cc6c0?w=150&h=80&fit=crop",
-    "https://images.unsplash.com/photo-1553484771-371a605b060b?w=150&h=80&fit=crop",
-    "https://images.unsplash.com/photo-1516321497487-e288fb19713f?w=150&h=80&fit=crop",
-    "https://images.unsplash.com/photo-1551836022-4c4c79ecde51?w=150&h=80&fit=crop",
-    "https://images.unsplash.com/photo-1516321165247-4aa89a48be28?w=150&h=80&fit=crop",
-  ];
+  const [sponsors, setSponsors] = useState(reduxSponsors.sponsors);
 
-  // Background slideshow effect
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentBgIndex((prevIndex) =>
@@ -63,6 +67,34 @@ const Home = () => {
 
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+
+      const response = await axios.get(`${backend_domain_name}/api/index`);
+
+      if (response.status == 200) {
+        console.log(response.data);
+        setSponsors(response.data.sponsors);
+        dispatch(setStoreReduxSponsors(response.data.sponsors));
+        dispatch(setStoreReduxEvents(response.data.events));
+        dispatch(setStoreReduxFaq(response.data.faqs));
+        dispatch(setStoreReduxGallery(response.data.gallery));
+        setIsServerError(false);
+      } else {
+        setIsServerError(true);
+      }
+
+      setLoading(false);
+    } catch (error) {
+      console.error("Error in fetchApi:", error);
+      setLoading(false);
+      setIsServerError(true);
+    }
+  };
+  useEffect(() => {
+    fetchData();
   }, []);
 
   return (
@@ -629,36 +661,85 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Enhanced Sponsors Section */}
       <section className="py-24 bg-gradient-to-b from-gray-50 to-white relative overflow-hidden">
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-20">
-            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
-              Our Partners
-            </h2>
-            <div className="w-32 h-1 bg-gradient-to-r from-blue-500 to-purple-500 mx-auto mb-8 rounded-full"></div>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Leading organizations supporting the future of cognitive
-              enhancement and human potential
-            </p>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            {sponsors.map((sponsor, index) => (
-              <div
-                key={index}
-                className="flex items-center justify-center p-8 bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-2 border border-gray-100 group"
-              >
-                <img
-                  src={sponsor || "/placeholder.svg?height=64&width=150"}
-                  alt={`Partner ${index + 1}`}
-                  className="max-h-16 w-auto object-contain group-hover:scale-110 transition-transform duration-300"
-                />
+          {loading ? (
+            // Loading State
+            <div className="text-center">
+              <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
+                Our Partners
+              </h2>
+              <div className="w-32 h-1 bg-gradient-to-r from-blue-500 to-purple-500 mx-auto mb-8 rounded-full"></div>
+              <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-12">
+                Loading our valued partners...
+              </p>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+                {[...Array(4)].map((_, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center justify-center p-8 bg-white rounded-2xl shadow-lg border border-gray-100"
+                  >
+                    <div className="relative w-full h-16">
+                      <div className="absolute inset-0 bg-gradient-to-r from-gray-100 to-gray-200 rounded-lg animate-pulse"></div>
+                      <div className="absolute inset-2 bg-white rounded-md"></div>
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+
+              <div className="mt-12 flex justify-center">
+                <div className="relative">
+                  <div className="h-3 w-48 bg-gray-200 rounded-full overflow-hidden">
+                    <div className="absolute h-full w-1/2 bg-gradient-to-r from-blue-400 to-purple-500 rounded-full animate-loading"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : isServerError ? (
+            // Your existing error state
+            <div className="text-center py-16 px-6 bg-white rounded-2xl shadow-lg border border-gray-100">
+              {/* ... (keep your existing error UI) ... */}
+            </div>
+          ) : (
+            // Success state
+            <>
+              <div className="text-center mb-20">
+                <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
+                  Our Partners
+                </h2>
+                <div className="w-32 h-1 bg-gradient-to-r from-blue-500 to-purple-500 mx-auto mb-8 rounded-full"></div>
+                <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+                  Leading organizations supporting the future of cognitive
+                  enhancement and human potential
+                </p>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+                {sponsors?.map((sponsor, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center justify-center p-8 bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-2 border border-gray-100 group"
+                  >
+                    <img
+                      src={
+                        sponsor.logo
+                          ? `${backend_domain_name}/storage/app/public/${sponsor.logo}`
+                          : "/placeholder.svg?height=64&width=150"
+                      }
+                      alt={`mind-hackmm-${sponsor.name}`}
+                      className="max-h-16 w-auto object-contain group-hover:scale-110 transition-transform duration-300"
+                      onError={(e) => {
+                        e.currentTarget.src =
+                          "/placeholder.svg?height=64&width=150";
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
         </div>
       </section>
-
       {/* Enhanced Newsletter Section */}
       <section className="py-32 bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-700 relative overflow-hidden">
         <div

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import axios from "axios";
 import {
   FaUser,
   FaEnvelope,
@@ -18,6 +19,10 @@ import {
   FaHeadset,
   FaLightbulb,
   FaHandshake,
+  FaSpinner,
+  FaExclamationTriangle,
+  FaTimes,
+  FaCheck,
 } from "react-icons/fa";
 
 const Contact = () => {
@@ -26,15 +31,25 @@ const Contact = () => {
     email: "",
     subject: "",
     message: "",
-    attachment: null,
   });
+
+  const [formErrors, setFormErrors] = useState({});
   const [fileName, setFileName] = useState("");
-  const [isSubmitted, setIsSubmitted] = useState(false);
   const [activeTab, setActiveTab] = useState("message");
+  const [submissionState, setSubmissionState] = useState({
+    isLoading: false,
+    isSuccess: false,
+    isError: false,
+    errorMessage: "",
+  });
+
   const formRef = useRef(null);
   const [isInView, setIsInView] = useState(false);
   const [scrollY, setScrollY] = useState(0);
+  const [showSuccessAnimation, setShowSuccessAnimation] = useState(false);
+  const [animationStep, setAnimationStep] = useState(0);
 
+  // Intersection Observer for form animation
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -54,53 +69,247 @@ const Contact = () => {
     };
   }, []);
 
+  // Scroll effect for parallax
   useEffect(() => {
     const handleScroll = () => {
       setScrollY(window.scrollY);
     };
 
     window.addEventListener("scroll", handleScroll);
-
-    return () => {
-      window.removeEventListener("scroll", handleScroll);
-    };
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value,
-    });
+  // Success animation sequence
+  useEffect(() => {
+    if (showSuccessAnimation) {
+      const timeouts = [
+        setTimeout(() => setAnimationStep(1), 300),
+        setTimeout(() => setAnimationStep(2), 800),
+        setTimeout(() => setAnimationStep(3), 1300),
+        setTimeout(() => setAnimationStep(4), 1800),
+      ];
+
+      return () => timeouts.forEach(clearTimeout);
+    }
+  }, [showSuccessAnimation]);
+
+  // Form validation
+  const validateForm = () => {
+    const errors = {};
+
+    // Name validation
+    if (!formData.name.trim()) {
+      errors.name = "Full name is required";
+    } else if (formData.name.trim().length < 2) {
+      errors.name = "Name must be at least 2 characters long";
+    } else if (!/^[a-zA-Z\s]+$/.test(formData.name.trim())) {
+      errors.name = "Name can only contain letters and spaces";
+    }
+
+    // Email validation
+    if (!formData.email.trim()) {
+      errors.email = "Email address is required";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
+      errors.email = "Please enter a valid email address";
+    }
+
+    // Subject validation
+    if (!formData.subject.trim()) {
+      errors.subject = "Subject is required";
+    } else if (formData.subject.trim().length < 5) {
+      errors.subject = "Subject must be at least 5 characters long";
+    }
+
+    // Message validation
+    if (!formData.message.trim()) {
+      errors.message = "Message is required";
+    } else if (formData.message.trim().length < 10) {
+      errors.message = "Message must be at least 10 characters long";
+    } else if (formData.message.trim().length > 1000) {
+      errors.message = "Message must be less than 1000 characters";
+    }
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
   };
 
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setFormData({
-        ...formData,
-        attachment: file,
-      });
-      setFileName(file.name);
+  // Handle input changes
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+
+    // Clear specific field error when user starts typing
+    if (formErrors[name]) {
+      setFormErrors((prev) => ({
+        ...prev,
+        [name]: undefined,
+      }));
     }
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    setIsSubmitted(true);
-    setTimeout(() => {
-      setIsSubmitted(false);
-      setFormData({
-        name: "",
-        email: "",
-        subject: "",
-        message: "",
-        attachment: null,
-      });
-      setFileName("");
-    }, 3000);
+  // Handle file upload
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file size (max 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        setFormErrors((prev) => ({
+          ...prev,
+          general: "File size must be less than 10MB",
+        }));
+        return;
+      }
+
+      // Validate file type
+      const allowedTypes = [
+        "image/jpeg",
+        "image/png",
+        "image/gif",
+        "image/webp",
+        "application/pdf",
+        "text/plain",
+        "application/msword",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      ];
+
+      if (!allowedTypes.includes(file.type)) {
+        setFormErrors((prev) => ({
+          ...prev,
+          general:
+            "File type not supported. Please upload images, PDF, or document files.",
+        }));
+        return;
+      }
+
+      setFormData((prev) => ({
+        ...prev,
+      }));
+      setFileName(file.name);
+
+      // Clear any previous file errors
+      if (formErrors.general) {
+        setFormErrors((prev) => ({
+          ...prev,
+          general: undefined,
+        }));
+      }
+    }
   };
 
+  // Handle form submission
+  const handleSubmit = async (e) => {
+    const backend_domain_name =
+      "http://mindhack-admin.z256600-ll9lz.ps02.zwhhosting.com";
+    e.preventDefault();
+
+    // Validate form
+    if (!validateForm()) {
+      return;
+    }
+
+    // Set loading state
+    setSubmissionState({
+      isLoading: true,
+      isSuccess: false,
+      isError: false,
+      errorMessage: "",
+    });
+
+    try {
+      // Prepare form data for submission
+      const submitData = new FormData();
+      submitData.append("name", formData.name.trim());
+      submitData.append("email", formData.email.trim());
+      submitData.append("subject", formData.subject.trim());
+      submitData.append("message", formData.message.trim());
+
+      // Make API call
+      const response = await axios.post(
+        `${backend_domain_name}/api/contact`,
+        submitData
+      );
+
+      // Check if response is successful
+      if (response.status === 200) {
+        setSubmissionState({
+          isLoading: false,
+          isSuccess: true,
+          isError: false,
+          errorMessage: "",
+        });
+
+        // Start success animation
+        setShowSuccessAnimation(true);
+        setAnimationStep(0);
+
+        // Reset form after successful submission
+        setTimeout(() => {
+          setFormData({
+            name: "",
+            email: "",
+            subject: "",
+            message: "",
+          });
+          setFileName("");
+          setFormErrors({});
+          setShowSuccessAnimation(false);
+          setAnimationStep(0);
+          setSubmissionState({
+            isLoading: false,
+            isSuccess: false,
+            isError: false,
+            errorMessage: "",
+          });
+        }, 5000);
+      }
+    } catch (error) {
+      console.error("Form submission error:", error);
+
+      let errorMessage = "An unexpected error occurred. Please try again.";
+
+      if (error.response) {
+        // Server responded with error status
+        if (error.response.status === 400) {
+          errorMessage = "Please check your input and try again.";
+        } else if (error.response.status === 429) {
+          errorMessage =
+            "Too many requests. Please wait a moment and try again.";
+        } else if (error.response.status >= 500) {
+          errorMessage = "Server error. Please try again later.";
+        } else if (error.response.data?.message) {
+          errorMessage = error.response.data.message;
+        }
+      } else if (error.request) {
+        // Network error
+        errorMessage =
+          "Network error. Please check your connection and try again.";
+      } else if (error.code === "ECONNABORTED") {
+        // Timeout error
+        errorMessage = "Request timeout. Please try again.";
+      }
+
+      setSubmissionState({
+        isLoading: false,
+        isSuccess: false,
+        isError: true,
+        errorMessage,
+      });
+
+      // Auto-hide error after 10 seconds
+      setTimeout(() => {
+        setSubmissionState((prev) => ({
+          ...prev,
+          isError: false,
+          errorMessage: "",
+        }));
+      }, 10000);
+    }
+  };
+
+  // Contact methods data
   const contactMethods = [
     {
       icon: FaHeadset,
@@ -224,7 +433,7 @@ const Contact = () => {
       </section>
 
       {/* Contact Methods */}
-      {/* <section className="py-16 px-4">
+      <section className="py-16 px-4">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-gray-900 mb-4">
@@ -255,7 +464,7 @@ const Contact = () => {
             ))}
           </div>
         </div>
-      </section> */}
+      </section>
 
       {/* Contact Form Section */}
       <section
@@ -379,8 +588,59 @@ const Contact = () => {
               </div>
 
               <div className="p-8">
-                {!isSubmitted ? (
+                {/* Error Alert */}
+                {submissionState.isError && (
+                  <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3">
+                    <FaExclamationTriangle className="text-red-500 mt-0.5 flex-shrink-0" />
+                    <div className="flex-1">
+                      <h4 className="font-medium text-red-800 mb-1">
+                        Submission Failed
+                      </h4>
+                      <p className="text-red-700 text-sm">
+                        {submissionState.errorMessage}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() =>
+                        setSubmissionState((prev) => ({
+                          ...prev,
+                          isError: false,
+                          errorMessage: "",
+                        }))
+                      }
+                      className="text-red-500 hover:text-red-700"
+                    >
+                      <FaTimes />
+                    </button>
+                  </div>
+                )}
+
+                {/* General Form Error */}
+                {formErrors.general && (
+                  <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3">
+                    <FaExclamationTriangle className="text-red-500 mt-0.5 flex-shrink-0" />
+                    <div className="flex-1">
+                      <p className="text-red-700 text-sm">
+                        {formErrors.general}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() =>
+                        setFormErrors((prev) => ({
+                          ...prev,
+                          general: undefined,
+                        }))
+                      }
+                      className="text-red-500 hover:text-red-700"
+                    >
+                      <FaTimes />
+                    </button>
+                  </div>
+                )}
+
+                {!submissionState.isSuccess ? (
                   <form onSubmit={handleSubmit} className="space-y-6">
+                    {/* Name Field */}
                     <div>
                       <label
                         htmlFor="name"
@@ -396,14 +656,24 @@ const Contact = () => {
                           name="name"
                           value={formData.name}
                           onChange={handleChange}
-                          className="w-full pl-12 pr-4 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                          className={`w-full pl-12 pr-4 py-4 border rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all ${
+                            formErrors.name
+                              ? "border-red-300 bg-red-50"
+                              : "border-gray-300"
+                          }`}
                           placeholder="Enter your full name"
-                          required
-                          minLength={2}
+                          disabled={submissionState.isLoading}
                         />
                       </div>
+                      {formErrors.name && (
+                        <p className="mt-2 text-sm text-red-600 flex items-center gap-2">
+                          <FaExclamationTriangle size={12} />
+                          {formErrors.name}
+                        </p>
+                      )}
                     </div>
 
+                    {/* Email Field */}
                     <div>
                       <label
                         htmlFor="email"
@@ -419,13 +689,24 @@ const Contact = () => {
                           name="email"
                           value={formData.email}
                           onChange={handleChange}
-                          className="w-full pl-12 pr-4 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                          className={`w-full pl-12 pr-4 py-4 border rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all ${
+                            formErrors.email
+                              ? "border-red-300 bg-red-50"
+                              : "border-gray-300"
+                          }`}
                           placeholder="your.email@example.com"
-                          required
+                          disabled={submissionState.isLoading}
                         />
                       </div>
+                      {formErrors.email && (
+                        <p className="mt-2 text-sm text-red-600 flex items-center gap-2">
+                          <FaExclamationTriangle size={12} />
+                          {formErrors.email}
+                        </p>
+                      )}
                     </div>
 
+                    {/* Subject Field */}
                     <div>
                       <label
                         htmlFor="subject"
@@ -441,19 +722,30 @@ const Contact = () => {
                           name="subject"
                           value={formData.subject}
                           onChange={handleChange}
-                          className="w-full pl-12 pr-4 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                          className={`w-full pl-12 pr-4 py-4 border rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all ${
+                            formErrors.subject
+                              ? "border-red-300 bg-red-50"
+                              : "border-gray-300"
+                          }`}
                           placeholder="What is your message about?"
-                          required
+                          disabled={submissionState.isLoading}
                         />
                       </div>
+                      {formErrors.subject && (
+                        <p className="mt-2 text-sm text-red-600 flex items-center gap-2">
+                          <FaExclamationTriangle size={12} />
+                          {formErrors.subject}
+                        </p>
+                      )}
                     </div>
 
+                    {/* Message Field */}
                     <div>
                       <label
                         htmlFor="message"
                         className="block text-sm font-medium text-gray-700 mb-2"
                       >
-                        Message *
+                        Message * ({formData.message.length}/1000)
                       </label>
                       <textarea
                         id="message"
@@ -461,58 +753,153 @@ const Contact = () => {
                         value={formData.message}
                         onChange={handleChange}
                         rows={5}
-                        className="w-full px-4 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                        className={`w-full px-4 py-4 border rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all resize-none ${
+                          formErrors.message
+                            ? "border-red-300 bg-red-50"
+                            : "border-gray-300"
+                        }`}
                         placeholder="Please provide details about your inquiry..."
-                        required
+                        disabled={submissionState.isLoading}
+                        maxLength={1000}
                       ></textarea>
+                      {formErrors.message && (
+                        <p className="mt-2 text-sm text-red-600 flex items-center gap-2">
+                          <FaExclamationTriangle size={12} />
+                          {formErrors.message}
+                        </p>
+                      )}
                     </div>
 
+                    {/* Submit Button */}
                     <button
                       type="submit"
-                      className="w-full bg-gradient-to-r from-teal-500 to-indigo-600 text-white py-4 px-8 rounded-xl font-bold text-lg hover:from-teal-600 hover:to-indigo-700 transition-all transform hover:scale-[1.02] shadow-lg hover:shadow-xl flex items-center justify-center gap-3"
+                      disabled={submissionState.isLoading}
+                      className="w-full bg-gradient-to-r from-teal-500 to-indigo-600 text-white py-4 px-8 rounded-xl font-bold text-lg hover:from-teal-600 hover:to-indigo-700 transition-all transform hover:scale-[1.02] shadow-lg hover:shadow-xl flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                     >
-                      <FaPaperPlane />
-                      Send Message
+                      {submissionState.isLoading ? (
+                        <>
+                          <FaSpinner className="animate-spin" />
+                          Sending Message...
+                        </>
+                      ) : (
+                        <>
+                          <FaPaperPlane />
+                          Send Message
+                        </>
+                      )}
                     </button>
                   </form>
                 ) : (
+                  /* Success Animation */
                   <div className="text-center py-12">
-                    <div className="w-20 h-20 bg-gradient-to-r from-teal-500 to-indigo-600 rounded-full flex items-center justify-center mx-auto mb-6">
-                      <FaCheckCircle className="text-white text-3xl" />
+                    <div className="relative mb-8">
+                      {/* Animated Success Icon */}
+                      <div
+                        className={`w-24 h-24 bg-gradient-to-r from-teal-500 to-indigo-600 rounded-full flex items-center justify-center mx-auto transition-all duration-500 ${
+                          showSuccessAnimation
+                            ? "scale-100 opacity-100"
+                            : "scale-0 opacity-0"
+                        }`}
+                      >
+                        <FaCheckCircle className="text-white text-4xl" />
+                      </div>
+
+                      {/* Ripple Effect */}
+                      {showSuccessAnimation && (
+                        <>
+                          <div className="absolute inset-0 w-24 h-24 mx-auto rounded-full bg-teal-200 animate-ping opacity-20"></div>
+                          <div className="absolute inset-0 w-24 h-24 mx-auto rounded-full bg-indigo-200 animate-ping opacity-20 animation-delay-200"></div>
+                        </>
+                      )}
                     </div>
-                    <h3 className="text-2xl font-bold text-gray-900 mb-4">
-                      Message Sent!
-                    </h3>
-                    <p className="text-gray-600 mb-6">
-                      Thank you for reaching out to Mind Hack. We've received
-                      your message and will get back to you shortly.
-                    </p>
-                    <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4 text-left">
-                      <p className="text-indigo-800 font-medium mb-2">
+
+                    {/* Success Message */}
+                    <div
+                      className={`transition-all duration-500 delay-300 ${
+                        animationStep >= 1
+                          ? "opacity-100 translate-y-0"
+                          : "opacity-0 translate-y-4"
+                      }`}
+                    >
+                      <h3 className="text-3xl font-bold text-gray-900 mb-4">
+                        Message Sent Successfully! 🎉
+                      </h3>
+                      <p className="text-gray-600 mb-8 text-lg">
+                        Thank you for reaching out to Mind Hack. We've received
+                        your message and will get back to you shortly.
+                      </p>
+                    </div>
+
+                    {/* Progress Steps */}
+                    <div
+                      className={`bg-gradient-to-r from-teal-50 to-indigo-50 border border-teal-100 rounded-2xl p-6 text-left transition-all duration-500 delay-500 ${
+                        animationStep >= 2
+                          ? "opacity-100 translate-y-0"
+                          : "opacity-0 translate-y-4"
+                      }`}
+                    >
+                      <p className="text-indigo-800 font-bold mb-4 text-lg">
                         What happens next?
                       </p>
-                      <ul className="text-indigo-700 text-sm space-y-2">
-                        <li className="flex items-center gap-2">
-                          <div className="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
-                            <span className="text-indigo-700 text-xs">1</span>
+                      <div className="space-y-4">
+                        <div
+                          className={`flex items-center gap-4 transition-all duration-300 ${
+                            animationStep >= 2 ? "opacity-100" : "opacity-50"
+                          }`}
+                        >
+                          <div className="w-8 h-8 rounded-full bg-gradient-to-r from-teal-500 to-indigo-500 flex items-center justify-center flex-shrink-0">
+                            <FaCheck className="text-white text-sm" />
                           </div>
-                          <span>Our team will review your message</span>
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <div className="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
-                            <span className="text-indigo-700 text-xs">2</span>
+                          <span className="text-gray-700">
+                            Your message has been received and logged
+                          </span>
+                        </div>
+                        <div
+                          className={`flex items-center gap-4 transition-all duration-300 delay-200 ${
+                            animationStep >= 3 ? "opacity-100" : "opacity-50"
+                          }`}
+                        >
+                          <div className="w-8 h-8 rounded-full bg-gradient-to-r from-teal-500 to-indigo-500 flex items-center justify-center flex-shrink-0">
+                            <span className="text-white text-sm font-bold">
+                              2
+                            </span>
                           </div>
-                          <span>You'll receive a confirmation email</span>
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <div className="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
-                            <span className="text-indigo-700 text-xs">3</span>
+                          <span className="text-gray-700">
+                            You'll receive a confirmation email within 5 minutes
+                          </span>
+                        </div>
+                        <div
+                          className={`flex items-center gap-4 transition-all duration-300 delay-400 ${
+                            animationStep >= 4 ? "opacity-100" : "opacity-50"
+                          }`}
+                        >
+                          <div className="w-8 h-8 rounded-full bg-gradient-to-r from-teal-500 to-indigo-500 flex items-center justify-center flex-shrink-0">
+                            <span className="text-white text-sm font-bold">
+                              3
+                            </span>
                           </div>
-                          <span>
+                          <span className="text-gray-700">
                             A specialist will contact you within 24 hours
                           </span>
-                        </li>
-                      </ul>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Additional Info */}
+                    <div
+                      className={`mt-6 p-4 bg-white border border-gray-200 rounded-xl transition-all duration-500 delay-700 ${
+                        animationStep >= 4
+                          ? "opacity-100 translate-y-0"
+                          : "opacity-0 translate-y-4"
+                      }`}
+                    >
+                      <p className="text-sm text-gray-600">
+                        <strong>Reference ID:</strong> MH-
+                        {Date.now().toString().slice(-6)}
+                      </p>
+                      <p className="text-sm text-gray-600 mt-1">
+                        Keep this reference for your records
+                      </p>
                     </div>
                   </div>
                 )}

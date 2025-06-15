@@ -9,87 +9,24 @@ import {
   FaUsers,
   FaGlobe,
   FaHeadset,
+  FaExclamationTriangle,
+  FaSync,
 } from "react-icons/fa";
+import { useDispatch, useSelector } from "react-redux";
+import { setStoreReduxFaq } from "../reducer/faqSlice";
+import axios from "axios";
 
 const FAQ = () => {
+  const backend_domain_name =
+    "http://mindhack-admin.z256600-ll9lz.ps02.zwhhosting.com";
+  const [loading, setLoading] = useState(false);
+  const reduxFaqs = useSelector((store) => store.faqs);
+  const dispatch = useDispatch();
+  const [isServerError, setIsServerError] = useState(false);
   const [openFAQ, setOpenFAQ] = useState(null);
   const [scrollY, setScrollY] = useState(0);
 
-  const faqs = [
-    {
-      id: 1,
-      question: "What is Mind Hack and how does it work?",
-      answer:
-        "Mind Hack is a revolutionary program that combines neuroscience, technology, and personal development to unlock your brain's full potential. We use evidence-based techniques including neurofeedback, brain training exercises, and cognitive enhancement protocols to help you improve memory, focus, creativity, and overall mental performance.",
-    },
-    {
-      id: 2,
-      question: "Who can benefit from Mind Hack programs?",
-      answer:
-        "Our programs are designed for anyone looking to enhance their cognitive abilities, from students and professionals to athletes and entrepreneurs. Whether you're seeking to improve focus, boost creativity, enhance memory, or achieve peak performance, Mind Hack offers tailored solutions for all skill levels and backgrounds.",
-    },
-    {
-      id: 3,
-      question: "Is Mind Hack scientifically proven?",
-      answer:
-        "Yes, our methodologies are based on peer-reviewed neuroscience research and clinical studies. We collaborate with leading universities and research institutions to ensure our techniques are scientifically validated. Our programs have shown measurable improvements in cognitive performance across thousands of participants.",
-    },
-    {
-      id: 4,
-      question: "What types of programs do you offer?",
-      answer:
-        "We offer various programs including intensive workshops, online courses, certification programs, and personalized coaching sessions. Our offerings range from beginner-friendly introductory courses to advanced neurofeedback training and professional certification programs for coaches and trainers.",
-    },
-    {
-      id: 5,
-      question: "How long does it take to see results?",
-      answer:
-        "Many participants notice improvements within the first few sessions, with significant changes typically occurring within 4-6 weeks of consistent practice. However, results vary based on individual goals, commitment level, and the specific techniques being used. Long-term benefits continue to develop over months of practice.",
-    },
-    {
-      id: 6,
-      question: "Do I need any special equipment or technology?",
-      answer:
-        "For basic programs, no special equipment is required. However, our advanced programs may utilize neurofeedback devices, EEG headsets, or specialized software. We provide all necessary equipment during in-person sessions and offer rental options for home practice with advanced technologies.",
-    },
-    {
-      id: 7,
-      question:
-        "What is neurofeedback and how does it enhance cognitive performance?",
-      answer:
-        "Neurofeedback is a non-invasive technique that provides real-time feedback about brain activity, allowing you to learn how to optimize your brainwave patterns. By training specific brainwave frequencies, you can improve focus, reduce stress, enhance creativity, and achieve peak mental states more consistently.",
-    },
-    {
-      id: 8,
-      question: "How does your brain-computer interface technology work?",
-      answer:
-        "Our proprietary MindSync™ technology uses advanced EEG sensors to monitor brain activity and provide personalized training protocols. The system adapts in real-time to your brain's responses, creating customized exercises that target your specific cognitive enhancement goals while ensuring optimal learning efficiency.",
-    },
-    {
-      id: 9,
-      question: "Can I become a certified Mind Hack trainer?",
-      answer:
-        "Yes! Our comprehensive certification program trains individuals to become qualified Mind Hack practitioners. The program includes theoretical foundations, hands-on training, supervised practice sessions, and ongoing mentorship. Certified trainers join our global network and receive continued education and support.",
-    },
-    {
-      id: 10,
-      question: "Is there ongoing support and community access?",
-      answer:
-        "All participants gain access to our exclusive online community, monthly group sessions, resource library, and ongoing support from our team of experts. We also host regular virtual meetups, advanced workshops, and annual conferences to keep you connected and continuously learning.",
-    },
-    {
-      id: 11,
-      question: "What are the costs involved in Mind Hack programs?",
-      answer:
-        "Our programs range from free introductory workshops to comprehensive certification courses. Basic online courses start at $99, intensive workshops range from $299-$599, and our full certification program is $2,999. We also offer payment plans and scholarships for qualifying participants.",
-    },
-    {
-      id: 12,
-      question: "Are there any age restrictions for participation?",
-      answer:
-        "Mind Hack programs are suitable for participants aged 16 and above. For participants under 18, we require parental consent. Our techniques are safe and effective for all adult age groups, and we have specialized programs designed for different life stages and cognitive goals.",
-    },
-  ];
+  const [faqs, setFaqs] = useState(reduxFaqs.faqs);
 
   const toggleFAQ = (id) => {
     setOpenFAQ(openFAQ === id ? null : id);
@@ -104,7 +41,31 @@ const FAQ = () => {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+  const fetchData = async () => {
+    try {
+      setLoading(true);
 
+      const response = await axios.get(`${backend_domain_name}/api/faqs`);
+
+      if (response.status == 200) {
+        console.log(faqs);
+        setFaqs(response.data.data);
+        dispatch(setStoreReduxFaq(response.data.data));
+        setIsServerError(false);
+      } else {
+        setIsServerError(true);
+      }
+
+      setLoading(false);
+    } catch (error) {
+      console.error("Error in fetchApi:", error);
+      setLoading(false);
+      setIsServerError(true);
+    }
+  };
+  useEffect(() => {
+    fetchData();
+  }, []);
   return (
     <div className="relative min-h-screen">
       {/* Animated Background Elements */}
@@ -176,50 +137,112 @@ const FAQ = () => {
 
           {/* FAQ List */}
           <div className="space-y-4 max-w-4xl mx-auto">
-            {faqs.map((faq) => (
-              <div
-                key={faq.id}
-                className="bg-white border border-gray-200 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden group"
-              >
-                <button
-                  onClick={() => toggleFAQ(faq.id)}
-                  className="w-full px-8 py-6 text-left flex justify-between items-center hover:bg-gray-50 transition-colors group-hover:bg-gray-50/50"
-                >
-                  <h4 className="text-lg font-semibold text-gray-900 pr-4 group-hover:text-teal-600 transition-colors">
-                    {faq.question}
-                  </h4>
-                  <div
-                    className={`flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-r from-teal-500 to-purple-500 flex items-center justify-center text-white transition-transform duration-300 ${
-                      openFAQ === faq.id ? "rotate-180" : ""
-                    }`}
-                  >
-                    {openFAQ === faq.id ? (
-                      <FaChevronUp size={14} />
-                    ) : (
-                      <FaChevronDown size={14} />
-                    )}
+            {loading && faqs.length == 0 ? (
+              <div className="bg-white border border-gray-200 rounded-2xl shadow-lg p-8">
+                <div className="flex flex-col items-center justify-center space-y-4">
+                  <div className="animate-pulse flex space-x-4 w-full">
+                    <div className="flex-1 space-y-4 py-1">
+                      <div className="h-6 bg-gray-200 rounded w-3/4"></div>
+                      <div className="space-y-2">
+                        <div className="h-4 bg-gray-200 rounded"></div>
+                        <div className="h-4 bg-gray-200 rounded w-5/6"></div>
+                      </div>
+                    </div>
+                    <div className="rounded-full bg-gray-200 h-8 w-8"></div>
                   </div>
-                </button>
-
-                <div
-                  className={`overflow-hidden transition-all duration-500 ease-in-out ${
-                    openFAQ === faq.id
-                      ? "max-h-96 opacity-100"
-                      : "max-h-0 opacity-0"
-                  }`}
-                >
-                  <div className="px-8 pb-6 border-t border-gray-100">
-                    <p className="text-gray-600 leading-relaxed pt-4 mb-4">
-                      {faq.answer}
-                    </p>
-                    {/* <button className="bg-gradient-to-r from-teal-500 to-purple-500 text-white px-6 py-2 rounded-lg font-medium hover:shadow-lg transition-all transform hover:scale-105 flex items-center gap-2">
-                      <FaLightbulb size={14} />
-                      Learn More
-                    </button> */}
+                  <div className="animate-pulse flex space-x-4 w-full">
+                    <div className="flex-1 space-y-4 py-1">
+                      <div className="h-6 bg-gray-200 rounded w-2/3"></div>
+                      <div className="space-y-2">
+                        <div className="h-4 bg-gray-200 rounded"></div>
+                        <div className="h-4 bg-gray-200 rounded w-4/5"></div>
+                      </div>
+                    </div>
+                    <div className="rounded-full bg-gray-200 h-8 w-8"></div>
                   </div>
                 </div>
               </div>
-            ))}
+            ) : isServerError ? (
+              <div className="bg-white border border-red-200 rounded-2xl shadow-lg p-8">
+                <div className="flex flex-col items-center text-center space-y-4">
+                  <div className="bg-red-100 p-4 rounded-full">
+                    <FaExclamationTriangle className="h-8 w-8 text-red-500" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-gray-900">
+                    Failed to Load FAQs
+                  </h3>
+                  <p className="text-gray-600">
+                    We're having trouble loading the frequently asked questions.
+                    Please try again later.
+                  </p>
+                  <button
+                    onClick={() => window.location.reload()}
+                    className="mt-4 bg-gradient-to-r from-red-500 to-orange-500 text-white px-6 py-2 rounded-lg font-medium hover:shadow-md transition-all flex items-center gap-2"
+                  >
+                    <FaSync /> Try Again
+                  </button>
+                </div>
+              </div>
+            ) : faqs.length === 0 ? (
+              <div className="bg-white border border-gray-200 rounded-2xl shadow-lg p-8">
+                <div className="flex flex-col items-center text-center space-y-4">
+                  <div className="bg-teal-100 p-4 rounded-full">
+                    <FaQuestionCircle className="h-8 w-8 text-teal-500" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-gray-900">
+                    No FAQs Available
+                  </h3>
+                  <p className="text-gray-600">
+                    We don't have any frequently asked questions at the moment.
+                    Check back later or contact our support team.
+                  </p>
+                  <button className="mt-4 bg-gradient-to-r from-teal-500 to-purple-500 text-white px-6 py-2 rounded-lg font-medium hover:shadow-md transition-all flex items-center gap-2">
+                    <FaHeadset /> Contact Support
+                  </button>
+                </div>
+              </div>
+            ) : (
+              faqs?.map((faq) => (
+                <div
+                  key={faq.id}
+                  className="bg-white border border-gray-200 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden group"
+                >
+                  <button
+                    onClick={() => toggleFAQ(faq.id)}
+                    className="w-full px-8 py-6 text-left flex justify-between items-center hover:bg-gray-50 transition-colors group-hover:bg-gray-50/50"
+                  >
+                    <h4 className="text-lg font-semibold text-gray-900 pr-4 group-hover:text-teal-600 transition-colors">
+                      {faq.q}
+                    </h4>
+                    <div
+                      className={`flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-r from-teal-500 to-purple-500 flex items-center justify-center text-white transition-transform duration-300 ${
+                        openFAQ === faq.id ? "rotate-180" : ""
+                      }`}
+                    >
+                      {openFAQ === faq.id ? (
+                        <FaChevronUp size={14} />
+                      ) : (
+                        <FaChevronDown size={14} />
+                      )}
+                    </div>
+                  </button>
+
+                  <div
+                    className={`overflow-hidden transition-all duration-500 ease-in-out ${
+                      openFAQ === faq.id
+                        ? "max-h-96 opacity-100"
+                        : "max-h-0 opacity-0"
+                    }`}
+                  >
+                    <div className="px-8 pb-6 border-t border-gray-100">
+                      <p className="text-gray-600 leading-relaxed pt-4 mb-4">
+                        {faq.a}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
 
           {/* Contact Section */}
