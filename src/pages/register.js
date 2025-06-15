@@ -239,7 +239,7 @@ const Register = () => {
   // Handle form submission
   const handleSubmit = async (e) => {
     const backend_domain_name =
-      "http://mindhack-admin.z256600-ll9lz.ps02.zwhhosting.com";
+      "https://mindhack-admin.z256600-ll9lz.ps02.zwhhosting.com";
     e.preventDefault();
 
     // Validate form

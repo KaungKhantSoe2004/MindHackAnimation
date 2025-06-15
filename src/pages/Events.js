@@ -20,7 +20,7 @@ import { useNavigate } from "react-router-dom";
 const Events = () => {
   const navigate = useNavigate();
   const backend_domain_name =
-    "http://mindhack-admin.z256600-ll9lz.ps02.zwhhosting.com";
+    "https://mindhack-admin.z256600-ll9lz.ps02.zwhhosting.com";
   const [scrollY, setScrollY] = useState(0);
   const [loading, setLoading] = useState(false);
   const reduxEvents = useSelector((store) => store.events);

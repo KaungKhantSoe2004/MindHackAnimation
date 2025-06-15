@@ -27,7 +27,7 @@ const Home = () => {
   const [isServerError, setIsServerError] = useState(false);
   const navigate = useNavigate();
   const backend_domain_name =
-    "http://mindhack-admin.z256600-ll9lz.ps02.zwhhosting.com";
+    "https://mindhack-admin.z256600-ll9lz.ps02.zwhhosting.com";
   const [email, setEmail] = useState("");
   const [currentBgIndex, setCurrentBgIndex] = useState(0);
   const [scrollY, setScrollY] = useState(0);

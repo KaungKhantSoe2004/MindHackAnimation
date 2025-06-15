@@ -15,7 +15,7 @@ import axios from "axios";
 
 const Gallery = () => {
   const backend_domain_name =
-    "http://mindhack-admin.z256600-ll9lz.ps02.zwhhosting.com";
+    "https://mindhack-admin.z256600-ll9lz.ps02.zwhhosting.com";
   const [loading, setLoading] = useState(false);
   const reduxGallery = useSelector((store) => store.gallery);
   const dispatch = useDispatch();

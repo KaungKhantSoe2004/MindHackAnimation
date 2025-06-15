@@ -18,7 +18,7 @@ import axios from "axios";
 
 const FAQ = () => {
   const backend_domain_name =
-    "http://mindhack-admin.z256600-ll9lz.ps02.zwhhosting.com";
+    "https://mindhack-admin.z256600-ll9lz.ps02.zwhhosting.com";
   const [loading, setLoading] = useState(false);
   const reduxFaqs = useSelector((store) => store.faqs);
   const dispatch = useDispatch();
